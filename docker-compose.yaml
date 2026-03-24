@@ -29,7 +29,9 @@ services:
       - kite-local-minio:/data
 
   kite:
-    image: merlintor/kite:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
       - "8080:8080"
@@ -42,7 +44,7 @@ services:
       - KITE_DATABASE__S3__ACCESS_KEY_ID=kite
       - KITE_DATABASE__S3__SECRET_ACCESS_KEY=1234567890
       - KITE_DATABASE__S3__SECURE=false
-      - KITE_APP__PUBLIC_BASE_URL=http://localhost:8080
+      - KITE_APP__PUBLIC_BASE_URL=http://localhost:3000
       - KITE_API__PUBLIC_BASE_URL=http://localhost:8080
     volumes:
       - ./kite.toml:/root/kite.toml
