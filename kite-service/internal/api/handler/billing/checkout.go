@@ -2,64 +2,40 @@ package billing
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
-	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 func (h *BillingHandler) HandleAppCheckout(c *handler.Context, req wire.BillingCheckoutRequest) (*wire.BillingCheckoutResponse, error) {
-	user, err := h.userStore.User(c.Context(), c.Session.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+	planID := req.PlanID
+	if planID == "" {
+		// Backward compatibility while frontend migrates away from LemonSqueezy field naming.
+		planID = req.LemonSqueezyVariantID
 	}
 
-	redirectURL := fmt.Sprintf("%s/apps/%s/premium", h.config.AppPublicBaseURL, c.App.ID)
-
-	variantID, err := strconv.Atoi(req.LemonSqueezyVariantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert variant ID to int: %w", err)
+	plan := h.planManager.PlanByID(planID)
+	if plan == nil {
+		return nil, handler.ErrBadRequest("unknown_plan", "Unknown plan")
 	}
 
-	storeID, err := strconv.Atoi(h.config.LemonSqueezyStoreID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert store ID to int: %w", err)
-	}
+	paymentID := util.UniqueID()
+	transferCode := fmt.Sprintf("%s-%s-%s-%s", h.config.TransferCodePrefix, c.App.ID, plan.ID, paymentID)
 
-	res, _, err := h.client.Checkouts.Create(
-		c.Context(),
-		storeID,
-		variantID,
-		&lemonsqueezy.CheckoutCreateAttributes{
-			TestMode: ptr(h.config.TestMode),
-			CheckoutOptions: lemonsqueezy.CheckoutCreateOptions{
-				Embed: ptr(true),
-			},
-			CheckoutData: lemonsqueezy.CheckoutCreateData{
-				Name:  user.DisplayName,
-				Email: user.Email,
-				Custom: map[string]any{
-					"user_id": c.Session.UserID,
-					"app_id":  c.App.ID,
-				},
-			},
-			ProductOptions: lemonsqueezy.CheckoutCreateProductOptions{
-				RedirectURL: redirectURL,
-			},
-			ExpiresAt: ptr(time.Now().UTC().Add(time.Hour).Format(time.RFC3339)),
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create checkout: %w", err)
+	amount := plan.PaymentAmount
+	if amount <= 0 {
+		amount = int(plan.Price)
 	}
 
 	return &wire.BillingCheckoutResponse{
-		URL: res.Data.Attributes.URL,
+		URL:             fmt.Sprintf("%s/apps/%s/premium", h.config.AppPublicBaseURL, c.App.ID),
+		PaymentID:       paymentID,
+		BankName:        h.config.MerchantBankName,
+		AccountNumber:   h.config.MerchantAccountNo,
+		Amount:          amount,
+		TransferContent: transferCode,
+		ExpiresAt:       time.Now().UTC().Add(time.Duration(h.config.CheckoutTTLMinutes) * time.Minute),
 	}, nil
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }

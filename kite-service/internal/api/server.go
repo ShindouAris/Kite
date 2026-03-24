@@ -33,11 +33,12 @@ type APIUserLimitsConfig struct {
 }
 
 type BillingConfig struct {
-	LemonSqueezyAPIKey        string
-	LemonSqueezySigningSecret string
-	LemonSqueezyStoreID       string
-	TestMode                  bool
-	Plans                     []config.BillingPlanConfig
+	WebhookHMACSecret  string
+	TransferCodePrefix string
+	MerchantBankName   string
+	MerchantAccountNo  string
+	CheckoutTTLMinutes int
+	Plans              []config.BillingPlanConfig
 }
 
 type APIServer struct {

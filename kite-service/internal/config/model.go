@@ -102,21 +102,24 @@ type OpenAIConfig struct {
 }
 
 type BillingConfig struct {
-	LemonSqueezyAPIKey        string              `toml:"lemonsqueezy_api_key"`
-	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
-	LemonSqueezyStoreID       string              `toml:"lemonsqueezy_store_id"`
-	TestMode                  bool                `toml:"test_mode"`
-	Plans                     []BillingPlanConfig `toml:"plans"`
+	WebhookHMACSecret  string              `toml:"webhook_hmac_secret"`
+	TransferCodePrefix string              `toml:"transfer_code_prefix"`
+	MerchantBankName   string              `toml:"merchant_bank_name"`
+	MerchantAccountNo  string              `toml:"merchant_account_no"`
+	CheckoutTTLMinutes int                 `toml:"checkout_ttl_minutes"`
+	Plans              []BillingPlanConfig `toml:"plans"`
 }
 
 type BillingPlanConfig struct {
-	ID          string  `toml:"id" validate:"required"`
-	Title       string  `toml:"title" validate:"required"`
-	Description string  `toml:"description" validate:"required"`
-	Price       float32 `toml:"price" validate:"required"`
-	Default     bool    `toml:"default"`
-	Popular     bool    `toml:"popular"`
-	Hidden      bool    `toml:"hidden"`
+	ID                  string  `toml:"id" validate:"required"`
+	Title               string  `toml:"title" validate:"required"`
+	Description         string  `toml:"description" validate:"required"`
+	Price               float32 `toml:"price" validate:"required"`
+	PaymentAmount       int     `toml:"payment_amount"`
+	PremiumDurationDays int     `toml:"premium_duration_days"`
+	Default             bool    `toml:"default"`
+	Popular             bool    `toml:"popular"`
+	Hidden              bool    `toml:"hidden"`
 
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`

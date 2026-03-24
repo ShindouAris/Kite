@@ -44,11 +44,28 @@ type BillingWebhookRequest struct {
 type BillingWebhookResponse struct{}
 
 type BillingCheckoutRequest struct {
+	PlanID                string `json:"plan_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
 }
 
 type BillingCheckoutResponse struct {
-	URL string `json:"url"`
+	URL             string    `json:"url"`
+	PaymentID       string    `json:"payment_id"`
+	BankName        string    `json:"bank_name"`
+	AccountNumber   string    `json:"account_number"`
+	Amount          int       `json:"amount"`
+	TransferContent string    `json:"transfer_content"`
+	ExpiresAt       time.Time `json:"expires_at"`
+}
+
+type BillingPaymentWebhookRequest struct {
+	RefNo           string `json:"refNo"`
+	Amount          string `json:"amount"`
+	TransactionDate string `json:"transactionDate"`
+	PostingDate     string `json:"postingDate"`
+	Description     string `json:"description"`
+	Sender          string `json:"sender"`
+	SenderAccountNo string `json:"senderAccoundNo"`
 }
 
 type SubscriptionManageResponse struct {
@@ -105,13 +122,15 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 }
 
 type BillingPlan struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	Default     bool    `json:"default"`
-	Popular     bool    `json:"popular"`
-	Hidden      bool    `json:"hidden"`
+	ID                  string  `json:"id"`
+	Title               string  `json:"title"`
+	Description         string  `json:"description"`
+	Price               float32 `json:"price"`
+	PaymentAmount       int     `json:"payment_amount"`
+	PremiumDurationDays int     `json:"premium_duration_days"`
+	Default             bool    `json:"default"`
+	Popular             bool    `json:"popular"`
+	Hidden              bool    `json:"hidden"`
 
 	LemonSqueezyProductID string `json:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
