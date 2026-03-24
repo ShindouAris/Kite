@@ -18,7 +18,7 @@ const app = new Elysia().get("/", () => "Hello Elysia").onStart(async ({server})
   }
   console.log(`Elysia server is starting at ${server?.hostname}:${server?.port}...`);
   console.log("Elysia server has started. Starting cron job to check for new transactions...");
-  startCron(USERNAME, PASSWORD, ACCOUNT_NUMBER);
+  await startCron(USERNAME, PASSWORD, ACCOUNT_NUMBER);
 }).onStop(() => {
   console.log("Elysia server is stopping...");
   stopCron();
