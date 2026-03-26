@@ -150,10 +150,17 @@ export interface BillingWebhookRequest {
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {
-  lemonsqueezy_variant_id: string;
+  plan_id: string;
+  lemonsqueezy_variant_id?: string;
 }
 export interface BillingCheckoutResponse {
   url: string;
+  payment_id: string;
+  bank_name: string;
+  account_number: string;
+  amount: number /* int */;
+  transfer_content: string;
+  expires_at: string /* RFC3339 */;
 }
 export interface SubscriptionManageResponse {
   update_payment_method_url: string;
