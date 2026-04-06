@@ -150,10 +150,56 @@ export interface BillingWebhookRequest {
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {
-  lemonsqueezy_variant_id: string;
+  plan_id: string;
+  lemonsqueezy_variant_id?: string;
+}
+export interface BillingCheckoutField {
+  name: string;
+  value: string;
 }
 export interface BillingCheckoutResponse {
-  url: string;
+  action_url: string;
+  method: string;
+  payment_id: string;
+  order_invoice_number: string;
+  success_url: string;
+  error_url: string;
+  cancel_url: string;
+  fields: BillingCheckoutField[];
+}
+export interface BillingSePayIPNRequest {
+  timestamp: number /* int64 */;
+  notification_type: string;
+  order: {
+    id: string;
+    order_id: string;
+    order_status: string;
+    order_currency: string;
+    order_amount: string;
+    order_invoice_number: string;
+    order_description: string;
+  };
+  transaction: {
+    id: string;
+    payment_method: string;
+    transaction_id: string;
+    transaction_type: string;
+    transaction_date: string;
+    transaction_status: string;
+    transaction_amount: string;
+    transaction_currency: string;
+  };
+  customer: {
+    id: string;
+    customer_id: string;
+  };
+}
+export interface BillingCheckoutStatusResponse {
+  payment_id: string;
+  status: string;
+  paid: boolean;
+  amount: number /* int */;
+  subscription_created: boolean;
 }
 export interface SubscriptionManageResponse {
   update_payment_method_url: string;
@@ -162,6 +208,7 @@ export interface SubscriptionManageResponse {
 export interface Subscription {
   id: string;
   display_name: string;
+  plan_id: string;
   source: string;
   status: string;
   status_formatted: string;

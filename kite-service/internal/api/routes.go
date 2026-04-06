@@ -149,14 +149,26 @@ func (s *APIServer) RegisterRoutes(
 
 	// Billing routes
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyAPIKey:        s.config.Billing.LemonSqueezyAPIKey,
-		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
-		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
-		TestMode:                  s.config.Billing.TestMode,
-		AppPublicBaseURL:          s.config.AppPublicBaseURL,
-	}, userStore, subscriptionStore, entitlementStore, planManager)
+		WebhookHMACSecret:       s.config.Billing.WebhookHMACSecret,
+		TransferCodePrefix:      s.config.Billing.TransferCodePrefix,
+		MerchantBankName:        s.config.Billing.MerchantBankName,
+		MerchantAccountNo:       s.config.Billing.MerchantAccountNo,
+		CheckoutTTLMinutes:      s.config.Billing.CheckoutTTLMinutes,
+		SePayMerchantID:         s.config.Billing.SePayMerchantID,
+		SePaySecretKey:          s.config.Billing.SePaySecretKey,
+		SePayCheckoutBaseURL:    s.config.Billing.SePayCheckoutBaseURL,
+		SePayAPIBaseURL:         s.config.Billing.SePayAPIBaseURL,
+		SePayBearerToken:        s.config.Billing.SePayBearerToken,
+		SePayBankAccountXID:     s.config.Billing.SePayBankAccountXID,
+		SePayVaPrefix:           s.config.Billing.SePayVaPrefix,
+		SePayQRCodeTemplate:     s.config.Billing.SePayQRCodeTemplate,
+		SePayWithQRCode:         s.config.Billing.SePayWithQRCode,
+		SePayCheckoutTTLMinutes: s.config.Billing.SePayCheckoutTTLMinutes,
+		AppPublicBaseURL:        s.config.AppPublicBaseURL,
+	}, appStore, userStore, subscriptionStore, entitlementStore, planManager)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
+	v1Group.Post("/billing/sepay/ipn", handler.TypedWithBody(billingHandler.HandleSePayIPN))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
 
 	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession)
@@ -165,6 +177,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingGroup.Get("/checkouts/{paymentID}", handler.Typed(billingHandler.HandleAppCheckoutStatus))
 	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes

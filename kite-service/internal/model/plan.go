@@ -1,13 +1,15 @@
 package model
 
 type Plan struct {
-	ID          string
-	Title       string
-	Description string
-	Price       float32
-	Default     bool
-	Popular     bool
-	Hidden      bool
+	ID                  string
+	Title               string
+	Description         string
+	Price               float32
+	PaymentAmount       int
+	PremiumDurationDays int
+	Default             bool
+	Popular             bool
+	Hidden              bool
 
 	LemonSqueezyProductID string
 	LemonSqueezyVariantID string

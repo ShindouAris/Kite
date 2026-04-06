@@ -44,11 +44,70 @@ type BillingWebhookRequest struct {
 type BillingWebhookResponse struct{}
 
 type BillingCheckoutRequest struct {
+	PlanID                string `json:"plan_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
 }
 
+type BillingCheckoutField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type BillingCheckoutResponse struct {
-	URL string `json:"url"`
+	ActionURL          string                 `json:"action_url"`
+	Method             string                 `json:"method"`
+	PaymentID          string                 `json:"payment_id"`
+	OrderInvoiceNumber string                 `json:"order_invoice_number"`
+	SuccessURL         string                 `json:"success_url"`
+	ErrorURL           string                 `json:"error_url"`
+	CancelURL          string                 `json:"cancel_url"`
+	Fields             []BillingCheckoutField `json:"fields"`
+}
+
+type BillingCheckoutStatusResponse struct {
+	PaymentID           string `json:"payment_id"`
+	Status              string `json:"status"`
+	Paid                bool   `json:"paid"`
+	Amount              int    `json:"amount"`
+	SubscriptionCreated bool   `json:"subscription_created"`
+}
+
+type BillingPaymentWebhookRequest struct {
+	RefNo           string `json:"refNo"`
+	Amount          string `json:"amount"`
+	TransactionDate string `json:"transactionDate"`
+	PostingDate     string `json:"postingDate"`
+	Description     string `json:"description"`
+	Sender          string `json:"sender"`
+	SenderAccountNo string `json:"senderAccoundNo"`
+}
+
+type BillingSePayIPNRequest struct {
+	Timestamp        int64  `json:"timestamp"`
+	NotificationType string `json:"notification_type"`
+	Order            struct {
+		ID                 string `json:"id"`
+		OrderID            string `json:"order_id"`
+		OrderStatus        string `json:"order_status"`
+		OrderCurrency      string `json:"order_currency"`
+		OrderAmount        string `json:"order_amount"`
+		OrderInvoiceNumber string `json:"order_invoice_number"`
+		OrderDescription   string `json:"order_description"`
+	} `json:"order"`
+	Transaction struct {
+		ID                  string `json:"id"`
+		PaymentMethod       string `json:"payment_method"`
+		TransactionID       string `json:"transaction_id"`
+		TransactionType     string `json:"transaction_type"`
+		TransactionDate     string `json:"transaction_date"`
+		TransactionStatus   string `json:"transaction_status"`
+		TransactionAmount   string `json:"transaction_amount"`
+		TransactionCurrency string `json:"transaction_currency"`
+	} `json:"transaction"`
+	Customer struct {
+		ID         string `json:"id"`
+		CustomerID string `json:"customer_id"`
+	} `json:"customer"`
 }
 
 type SubscriptionManageResponse struct {
@@ -59,6 +118,7 @@ type SubscriptionManageResponse struct {
 type Subscription struct {
 	ID                         string      `json:"id"`
 	DisplayName                string      `json:"display_name"`
+	PlanID                     string      `json:"plan_id"`
 	Source                     string      `json:"source"`
 	Status                     string      `json:"status"`
 	StatusFormatted            string      `json:"status_formatted"`
@@ -86,6 +146,7 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 	return &Subscription{
 		ID:                         subscription.ID,
 		DisplayName:                subscription.DisplayName,
+		PlanID:                     subscription.LemonsqueezyProductID.String,
 		Source:                     string(subscription.Source),
 		Status:                     subscription.Status,
 		StatusFormatted:            subscription.StatusFormatted,
@@ -100,18 +161,20 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 		LemonsqueezyOrderID:        subscription.LemonsqueezyOrderID,
 		LemonsqueezyProductID:      subscription.LemonsqueezyProductID,
 		LemonsqueezyVariantID:      subscription.LemonsqueezyVariantID,
-		Manageable:                 subscription.UserID == userID && subscription.LemonsqueezySubscriptionID.Valid,
+		Manageable:                 subscription.UserID == userID && subscription.Source == model.SubscriptionSourceLemonSqueezy && subscription.LemonsqueezySubscriptionID.Valid,
 	}
 }
 
 type BillingPlan struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	Default     bool    `json:"default"`
-	Popular     bool    `json:"popular"`
-	Hidden      bool    `json:"hidden"`
+	ID                  string  `json:"id"`
+	Title               string  `json:"title"`
+	Description         string  `json:"description"`
+	Price               float32 `json:"price"`
+	PaymentAmount       int     `json:"payment_amount"`
+	PremiumDurationDays int     `json:"premium_duration_days"`
+	Default             bool    `json:"default"`
+	Popular             bool    `json:"popular"`
+	Hidden              bool    `json:"hidden"`
 
 	LemonSqueezyProductID string `json:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`

@@ -29,6 +29,8 @@ type SubscriptionSource string
 
 const (
 	SubscriptionSourceLemonSqueezy SubscriptionSource = "lemonsqueezy"
+	SubscriptionSourceSePay        SubscriptionSource = "sepay"
+	SubscriptionSourceManual       SubscriptionSource = "manual"
 )
 
 func (s SubscriptionSource) String() string {

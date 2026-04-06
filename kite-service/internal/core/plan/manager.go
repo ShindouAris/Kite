@@ -43,6 +43,15 @@ func (m *PlanManager) Plans() []model.Plan {
 	return m.plans
 }
 
+func (m *PlanManager) PlanByID(planID string) *model.Plan {
+	for _, plan := range m.plans {
+		if plan.ID == planID {
+			return &plan
+		}
+	}
+	return nil
+}
+
 func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
 	for _, plan := range m.plans {
 		if plan.LemonSqueezyProductID == productID {
