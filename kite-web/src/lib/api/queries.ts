@@ -8,13 +8,13 @@ import {
   AppListResponse,
   AssetGetResponse,
   BillingPlanListResponse,
+  BillingCheckoutStatusResponse,
   CommandGetResponse,
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
   LogEntry,
-  LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
@@ -293,6 +293,21 @@ export function useAppSubscriptionsQuery(appId: string) {
         `/v1/apps/${appId}/billing/subscriptions`
       ),
     enabled: !!appId,
+  });
+}
+
+export function useBillingCheckoutStatusQuery(
+  appId: string,
+  paymentId: string,
+  planId: string
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "billing", "checkouts", paymentId, planId],
+    queryFn: () =>
+      apiRequest<BillingCheckoutStatusResponse>(
+        `/v1/apps/${appId}/billing/checkouts/${paymentId}?plan_id=${encodeURIComponent(planId)}`
+      ),
+    enabled: !!appId && !!paymentId && !!planId,
   });
 }
 

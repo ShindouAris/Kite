@@ -33,12 +33,22 @@ type APIUserLimitsConfig struct {
 }
 
 type BillingConfig struct {
-	WebhookHMACSecret  string
-	TransferCodePrefix string
-	MerchantBankName   string
-	MerchantAccountNo  string
-	CheckoutTTLMinutes int
-	Plans              []config.BillingPlanConfig
+	WebhookHMACSecret       string
+	TransferCodePrefix      string
+	MerchantBankName        string
+	MerchantAccountNo       string
+	CheckoutTTLMinutes      int
+	SePayMerchantID         string
+	SePaySecretKey          string
+	SePayCheckoutBaseURL    string
+	SePayAPIBaseURL         string
+	SePayBearerToken        string
+	SePayBankAccountXID     string
+	SePayVaPrefix           string
+	SePayQRCodeTemplate     string
+	SePayWithQRCode         bool
+	SePayCheckoutTTLMinutes int
+	Plans                   []config.BillingPlanConfig
 }
 
 type APIServer struct {

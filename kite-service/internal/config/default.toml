@@ -8,7 +8,7 @@ public_base_url = "http://localhost:8080"
 strict_cookies = true
 
 [app]
-public_base_url = "http://localhost:3000"
+public_base_url = "http://localhost:8080"
 
 [user_limits]
 max_apps_per_user = 10
@@ -34,8 +34,18 @@ secret_access_key = "1234567890"
 transfer_code_prefix = "KITE"
 merchant_bank_name = "Bank UserName"
 merchant_account_no = "0123456789"
-webhook_hmac_secret = "hmac_sec"
+webhook_hmac_secret = "hmac_sec" # derpecated, không dùng nữa
 checkout_ttl_minutes = 30
+sepay_merchant_id = "SP-LIVE-???????"
+sepay_secret_key = ""
+sepay_checkout_base_url = "https://pay.sepay.vn"
+sepay_api_base_url = "https://userapi.sepay.vn/v2"
+sepay_bearer_token = ""
+sepay_bank_account_xid = ""
+sepay_va_prefix = ""
+sepay_qrcode_template = "compact"
+sepay_with_qrcode = true
+sepay_checkout_ttl_minutes = 30
 
 [[billing.plans]]
 id = "basic"
@@ -55,17 +65,17 @@ feature_max_event_listeners = 5
 feature_priority_support = false
 
 [[billing.plans]]
-id = "pro"
-title = "Iphone 14 promax"
+id = "premium-extra"
+title = "Premium Extra"
 description = "Gói cao cấp hơn với nhiều tính năng hơn"
-price = 40000
-payment_amount = 40000
+price = 7000
+payment_amount = 7000
 premium_duration_days = 36
 default = false
 feature_max_collaborators = 5
 feature_usage_credits_per_month = 10000
-feature_max_guilds = 250
-feature_max_commands = 50
+feature_max_guilds = 500
+feature_max_commands = 72
 feature_max_variables = 50
 feature_max_messages = 50
 feature_max_event_listeners = 10

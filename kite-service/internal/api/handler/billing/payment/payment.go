@@ -3,6 +3,7 @@ package payment
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"regexp"
 	"strconv"
@@ -15,7 +16,40 @@ type TransferCodeParts struct {
 	Nonce  string
 }
 
-var transferCodeRegex = regexp.MustCompile(`(?i)\b([a-z]+)-([a-z0-9]+)-([a-z0-9_-]+)-([a-z0-9_-]+)\b`)
+var transferCodeRegex = regexp.MustCompile(`(?i)\b([a-z0-9]+)-([a-z0-9]+)-([a-z0-9_-]+)-([a-z0-9_-]+)\b`)
+
+func EncodeInvoiceNumber(appID, planID, uniqueID string) string {
+	raw := appID + "-" + planID + "-" + uniqueID
+	encoded := base64.URLEncoding.EncodeToString([]byte(raw))
+	return "KITE" + encoded
+}
+
+func DecodeInvoiceNumber(invoiceNumber string) (*TransferCodeParts, bool) {
+	if invoiceNumber == "" || !strings.HasPrefix(invoiceNumber, "KITE") {
+		return nil, false
+	}
+
+	encoded := strings.TrimPrefix(invoiceNumber, "KITE")
+	if encoded == "" {
+		return nil, false
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, false
+	}
+
+	parts := strings.SplitN(string(decoded), "-", 3)
+	if len(parts) != 3 {
+		return nil, false
+	}
+
+	return &TransferCodeParts{
+		AppID:  parts[0],
+		PlanID: parts[1],
+		Nonce:  parts[2],
+	}, true
+}
 
 func VerifyHMAC(payload []byte, signature string, secret string) bool {
 	if secret == "" || signature == "" {
@@ -68,8 +102,19 @@ func ParseTransferCode(description string, prefix string) (*TransferCodeParts, b
 }
 
 func ParseAmountVND(raw string) (int, error) {
+	cleaned := strings.TrimSpace(raw)
+	cleaned = strings.ReplaceAll(cleaned, ",", "")
+	cleaned = strings.ReplaceAll(cleaned, " ", "")
+	if cleaned == "" {
+		return 0, strconv.ErrSyntax
+	}
+
+	if v, err := strconv.ParseFloat(cleaned, 64); err == nil {
+		return int(v), nil
+	}
+
 	var b strings.Builder
-	for _, r := range raw {
+	for _, r := range cleaned {
 		if r >= '0' && r <= '9' {
 			b.WriteRune(r)
 		}

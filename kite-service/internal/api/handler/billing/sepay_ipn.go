@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -14,54 +15,54 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawMessage) (*wire.BillingWebhookResponse, error) {
-	signature := c.Header("X-HMAC-Signature")
-
-	if !payment.VerifyHMAC(body, signature, h.config.WebhookHMACSecret) {
-		return nil, fmt.Errorf("failed to verify webhook signature")
+func (h *BillingHandler) HandleSePayIPN(c *handler.Context, body json.RawMessage) (*wire.BillingWebhookResponse, error) {
+	if strings.TrimSpace(c.Header("X-Secret-Key")) != strings.TrimSpace(h.config.SePaySecretKey) {
+		return nil, handler.ErrUnauthorized("unauthorized", "invalid sepay secret key")
 	}
 
-	var req wire.BillingPaymentWebhookRequest
+	var req wire.BillingSePayIPNRequest
 	if err := json.Unmarshal(body, &req); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal webhook event: %w", err)
+		return nil, handler.ErrBadRequest("invalid_request", fmt.Sprintf("failed to decode sepay ipn: %v", err))
 	}
 
-	code, ok := payment.DecodeInvoiceNumber(req.Description)
+	if !strings.EqualFold(req.NotificationType, "ORDER_PAID") {
+		return &wire.BillingWebhookResponse{}, nil
+	}
+
+	code, ok := payment.DecodeInvoiceNumber(req.Order.OrderInvoiceNumber)
 	if !ok {
-		return nil, fmt.Errorf("failed to parse transfer code from description")
-	}
-
-	amount, err := payment.ParseAmountVND(req.Amount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse amount: %w", err)
+		return nil, handler.ErrBadRequest("invalid_invoice_number", "failed to parse order invoice number")
 	}
 
 	plan := h.planManager.PlanByID(code.PlanID)
 	if plan == nil {
-		return nil, fmt.Errorf("failed to find plan: %s", code.PlanID)
+		return nil, handler.ErrBadRequest("unknown_plan", "Unknown plan")
+	}
+
+	amount, err := payment.ParseAmountVND(req.Order.OrderAmount)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_amount", fmt.Sprintf("failed to parse order amount: %v", err))
 	}
 
 	expectedAmount := plan.PaymentAmount
 	if expectedAmount <= 0 {
 		expectedAmount = int(plan.Price)
 	}
-
 	if amount != expectedAmount {
-		return nil, fmt.Errorf("amount mismatch: expected %d got %d", expectedAmount, amount)
+		return nil, handler.ErrBadRequest("amount_mismatch", fmt.Sprintf("expected %d got %d", expectedAmount, amount))
 	}
 
 	app, err := h.appStore.App(c.Context(), code.AppID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load app from transfer code: %w", err)
+		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
 	now := time.Now().UTC()
 	renewsAt := now.AddDate(50, 0, 0)
-
 	subscription, err := h.subscriptionStore.UpsertLemonSqueezySubscription(c.Context(), model.Subscription{
 		ID:                         util.UniqueID(),
 		DisplayName:                plan.Title,
-		Source:                     model.SubscriptionSourceManual,
+		Source:                     model.SubscriptionSourceSePay,
 		Status:                     "active",
 		StatusFormatted:            "Active",
 		RenewsAt:                   renewsAt,
@@ -70,16 +71,16 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		CreatedAt:                  now,
 		UpdatedAt:                  now,
 		UserID:                     app.OwnerUserID,
-		LemonsqueezySubscriptionID: null.StringFrom(req.RefNo),
+		LemonsqueezySubscriptionID: null.StringFrom(req.Order.OrderInvoiceNumber),
 		LemonsqueezyCustomerID:     null.String{},
-		LemonsqueezyOrderID:        null.StringFrom(req.RefNo),
+		LemonsqueezyOrderID:        null.StringFrom(req.Order.OrderID),
 		LemonsqueezyProductID:      null.StringFrom(plan.ID),
-		LemonsqueezyVariantID:      null.StringFrom(code.Nonce),
+		LemonsqueezyVariantID:      null.String{},
 	})
 	if err != nil {
 		slog.Error(
-			"Failed to upsert subscription",
-			slog.String("payment_ref_no", req.RefNo),
+			"Failed to upsert sepay subscription",
+			slog.String("order_invoice_number", req.Order.OrderInvoiceNumber),
 			slog.String("error", err.Error()),
 		)
 		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
@@ -103,12 +104,6 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 
 	_, err = h.entitlementStore.UpsertSubscriptionEntitlement(c.Context(), entitlement)
 	if err != nil {
-		slog.Error(
-			"Failed to upsert subscription entitlement",
-			slog.String("subscription_id", subscription.ID),
-			slog.String("payment_ref_no", req.RefNo),
-			slog.String("error", err.Error()),
-		)
 		return nil, fmt.Errorf("failed to upsert subscription entitlement: %w", err)
 	}
 

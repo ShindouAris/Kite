@@ -6,16 +6,27 @@ import (
 )
 
 type BillingHandlerConfig struct {
-	WebhookHMACSecret  string
-	TransferCodePrefix string
-	MerchantBankName   string
-	MerchantAccountNo  string
-	CheckoutTTLMinutes int
-	AppPublicBaseURL   string
+	WebhookHMACSecret       string
+	TransferCodePrefix      string
+	MerchantBankName        string
+	MerchantAccountNo       string
+	CheckoutTTLMinutes      int
+	SePayMerchantID         string
+	SePaySecretKey          string
+	SePayCheckoutBaseURL    string
+	SePayAPIBaseURL         string
+	SePayBearerToken        string
+	SePayBankAccountXID     string
+	SePayVaPrefix           string
+	SePayQRCodeTemplate     string
+	SePayWithQRCode         bool
+	SePayCheckoutTTLMinutes int
+	AppPublicBaseURL        string
 }
 
 type BillingHandler struct {
 	config            BillingHandlerConfig
+	sepay             *sepayClient
 	appStore          store.AppStore
 	userStore         store.UserStore
 	subscriptionStore store.SubscriptionStore
@@ -39,8 +50,25 @@ func NewBillingHandler(
 		config.CheckoutTTLMinutes = 30
 	}
 
+	if config.SePayCheckoutBaseURL == "" {
+		config.SePayCheckoutBaseURL = "https://pay.sepay.vn"
+	}
+
+	if config.SePayAPIBaseURL == "" {
+		config.SePayAPIBaseURL = "https://userapi.sepay.vn/v2"
+	}
+
+	if config.SePayCheckoutTTLMinutes <= 0 {
+		config.SePayCheckoutTTLMinutes = 30
+	}
+
+	if config.SePayQRCodeTemplate == "" {
+		config.SePayQRCodeTemplate = "compact"
+	}
+
 	return &BillingHandler{
 		config:            config,
+		sepay:             newSePayClient(config.SePayAPIBaseURL, config.SePayBearerToken),
 		appStore:          appStore,
 		userStore:         userStore,
 		subscriptionStore: subscriptionStore,

@@ -10,13 +10,19 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
-import { useMemo, useState } from "react";
+import { useAppId } from "@/lib/hooks/params";
+import { useEffect, useMemo } from "react";
 import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
-import { BillingCheckoutResponse, BillingPlan } from "@/lib/types/wire.gen";
+import { BillingCheckoutResponse } from "@/lib/types/wire.gen";
 import { formatNumber } from "@/lib/utils";
-import QRCodePaymentModal from "./QRCodePaymentModal";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/router";
+import { toast } from "sonner";
 
 export default function AppPricingList() {
+  const appId = useAppId();
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const subscriptions = useAppSubscriptions();
 
   const activeSubscriptions = subscriptions?.filter(
@@ -33,9 +39,7 @@ export default function AppPricingList() {
           return {
             ...plan!,
             current: activeSubscriptions?.some(
-              (subscription) =>
-                subscription!.lemonsqueezy_product_id ===
-                plan!.lemonsqueezy_product_id
+              (subscription) => subscription!.plan_id === plan!.id
             ),
           };
         }) ?? []
@@ -43,11 +47,51 @@ export default function AppPricingList() {
   }, [activeSubscriptions, plans]);
 
   const checkout = useLemonSqueezyCheckout();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<BillingPlan | null>(null);
-  const [checkoutData, setCheckoutData] = useState<BillingCheckoutResponse | null>(
-    null
-  );
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const paymentStatus = router.query.payment;
+    if (paymentStatus === undefined) return;
+
+    if (paymentStatus === "success") {
+      toast.success("Thanh toán thành công");
+      queryClient.invalidateQueries({
+        queryKey: ["apps", appId, "billing", "subscriptions"],
+      });
+    } else if (paymentStatus === "cancel") {
+      toast.message("Đã hủy thanh toán");
+    } else if (paymentStatus === "error") {
+      toast.error("Thanh toán thất bại");
+    }
+
+    const nextQuery = { ...router.query };
+    delete nextQuery.payment;
+    delete nextQuery.plan_id;
+    delete nextQuery.invoice;
+    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
+      shallow: true,
+    });
+  }, [appId, queryClient, router]);
+
+  const submitCheckoutForm = (checkoutData: BillingCheckoutResponse) => {
+    const form = document.createElement("form");
+    form.action = checkoutData.action_url;
+    form.method = checkoutData.method || "POST";
+    form.style.display = "none";
+
+    for (const field of checkoutData.fields) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = field.name;
+      input.value = field.value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    window.setTimeout(() => form.remove(), 0);
+  };
 
   return (
     <>
@@ -87,9 +131,7 @@ export default function AppPricingList() {
                 variant={pricing.popular ? "default" : "outline"}
                 onClick={() =>
                   checkout(pricing.id, (data) => {
-                    setSelectedPlan(pricing);
-                    setCheckoutData(data);
-                    setModalOpen(true);
+                    submitCheckoutForm(data);
                   })
                 }
               >
@@ -143,14 +185,6 @@ export default function AppPricingList() {
           </Card>
         ))}
       </div>
-
-      <QRCodePaymentModal
-        open={modalOpen}
-        checkout={checkoutData}
-        planTitle={selectedPlan?.title}
-        planProductId={selectedPlan?.lemonsqueezy_product_id}
-        onClose={() => setModalOpen(false)}
-      />
     </>
   );
 }
