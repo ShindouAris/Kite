@@ -9,6 +9,7 @@ import {
   useAppStateGuildChannelsQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
+  useBillingCheckoutStatusQuery,
   useBillingPlansQuery,
   useCommandQuery,
   useCommandsQuery,
@@ -310,6 +311,21 @@ export function useAppSubscriptions(
   const router = useRouter();
 
   const query = useAppSubscriptionsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useBillingCheckoutStatus(
+  paymentId: string,
+  planId: string,
+  callback?: (res: APIResponse<unknown>) => void
+) {
+  const router = useRouter();
+
+  const query = useBillingCheckoutStatusQuery(
+    router.query.appId as string,
+    paymentId,
+    planId
+  );
   return useResponseData(query, callback);
 }
 
