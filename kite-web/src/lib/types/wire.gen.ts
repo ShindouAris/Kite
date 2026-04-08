@@ -161,38 +161,26 @@ export interface BillingCheckoutResponse {
   action_url: string;
   method: string;
   payment_id: string;
-  order_invoice_number: string;
-  success_url: string;
-  error_url: string;
-  cancel_url: string;
+  qr_code_url: string;
+  payment_content: string;
+  payment_status_url: string;
+  amount: number /* int */;
+  expires_at: string /* RFC3339 */;
   fields: BillingCheckoutField[];
 }
 export interface BillingSePayIPNRequest {
-  timestamp: number /* int64 */;
-  notification_type: string;
-  order: {
-    id: string;
-    order_id: string;
-    order_status: string;
-    order_currency: string;
-    order_amount: string;
-    order_invoice_number: string;
-    order_description: string;
-  };
-  transaction: {
-    id: string;
-    payment_method: string;
-    transaction_id: string;
-    transaction_type: string;
-    transaction_date: string;
-    transaction_status: string;
-    transaction_amount: string;
-    transaction_currency: string;
-  };
-  customer: {
-    id: string;
-    customer_id: string;
-  };
+  id: number /* int64 */;
+  gateway: string;
+  transactionDate: string;
+  accountNumber: string;
+  code: null | string;
+  content: string;
+  transferType: string;
+  transferAmount: number /* int64 */;
+  accumulated: number /* int64 */;
+  subAccount: null | string;
+  referenceCode: string;
+  description: string;
 }
 export interface BillingCheckoutStatusResponse {
   payment_id: string;

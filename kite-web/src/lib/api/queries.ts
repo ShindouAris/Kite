@@ -308,6 +308,7 @@ export function useBillingCheckoutStatusQuery(
         `/v1/apps/${appId}/billing/checkouts/${paymentId}?plan_id=${encodeURIComponent(planId)}`
       ),
     enabled: !!appId && !!paymentId && !!planId,
+    refetchInterval: 3000,
   });
 }
 

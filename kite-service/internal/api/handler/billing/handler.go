@@ -25,17 +25,19 @@ type BillingHandlerConfig struct {
 }
 
 type BillingHandler struct {
-	config            BillingHandlerConfig
-	sepay             *sepayClient
-	appStore          store.AppStore
-	userStore         store.UserStore
-	subscriptionStore store.SubscriptionStore
-	entitlementStore  store.EntitlementStore
-	planManager       *plan.PlanManager
+	config              BillingHandlerConfig
+	paymentSessionStore store.PaymentSessionStore
+	sepay               *sepayClient
+	appStore            store.AppStore
+	userStore           store.UserStore
+	subscriptionStore   store.SubscriptionStore
+	entitlementStore    store.EntitlementStore
+	planManager         *plan.PlanManager
 }
 
 func NewBillingHandler(
 	config BillingHandlerConfig,
+	paymentSessionStore store.PaymentSessionStore,
 	appStore store.AppStore,
 	userStore store.UserStore,
 	subscriptionStore store.SubscriptionStore,
@@ -62,17 +64,14 @@ func NewBillingHandler(
 		config.SePayCheckoutTTLMinutes = 30
 	}
 
-	if config.SePayQRCodeTemplate == "" {
-		config.SePayQRCodeTemplate = "compact"
-	}
-
 	return &BillingHandler{
-		config:            config,
-		sepay:             newSePayClient(config.SePayAPIBaseURL, config.SePayBearerToken),
-		appStore:          appStore,
-		userStore:         userStore,
-		subscriptionStore: subscriptionStore,
-		entitlementStore:  entitlementStore,
-		planManager:       planManager,
+		config:              config,
+		paymentSessionStore: paymentSessionStore,
+		sepay:               newSePayClient(config.SePayAPIBaseURL, config.SePayBearerToken),
+		appStore:            appStore,
+		userStore:           userStore,
+		subscriptionStore:   subscriptionStore,
+		entitlementStore:    entitlementStore,
+		planManager:         planManager,
 	}
 }

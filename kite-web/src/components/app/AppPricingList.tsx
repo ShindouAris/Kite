@@ -9,21 +9,27 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
+import {
+  useAppSubscriptions,
+  useBillingPlans,
+  useBillingCheckoutStatus,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useEffect, useMemo } from "react";
-import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
+import { useEffect, useMemo, useState } from "react";
+import { useBillingCheckout } from "@/lib/hooks/lemonsqueezy";
 import { BillingCheckoutResponse } from "@/lib/types/wire.gen";
 import { formatNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/router";
 import { toast } from "sonner";
 
 export default function AppPricingList() {
   const appId = useAppId();
   const queryClient = useQueryClient();
-  const router = useRouter();
   const subscriptions = useAppSubscriptions();
+  const [activeCheckout, setActiveCheckout] = useState<{
+    planId: string;
+    checkout: BillingCheckoutResponse;
+  } | null>(null);
 
   const activeSubscriptions = subscriptions?.filter(
     (subscription) => subscription!.status !== "expired"
@@ -46,55 +52,82 @@ export default function AppPricingList() {
     );
   }, [activeSubscriptions, plans]);
 
-  const checkout = useLemonSqueezyCheckout();
+  const checkout = useBillingCheckout();
+
+  const checkoutStatus = useBillingCheckoutStatus(
+    activeCheckout?.checkout.payment_id ?? "",
+    activeCheckout?.planId ?? ""
+  );
 
   useEffect(() => {
-    if (!router.isReady) return;
-
-    const paymentStatus = router.query.payment;
-    if (paymentStatus === undefined) return;
-
-    if (paymentStatus === "success") {
+    if (checkoutStatus?.paid && activeCheckout) {
       toast.success("Thanh toán thành công");
       queryClient.invalidateQueries({
         queryKey: ["apps", appId, "billing", "subscriptions"],
       });
-    } else if (paymentStatus === "cancel") {
-      toast.message("Đã hủy thanh toán");
-    } else if (paymentStatus === "error") {
-      toast.error("Thanh toán thất bại");
+      setActiveCheckout(null);
     }
-
-    const nextQuery = { ...router.query };
-    delete nextQuery.payment;
-    delete nextQuery.plan_id;
-    delete nextQuery.invoice;
-    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, {
-      shallow: true,
-    });
-  }, [appId, queryClient, router]);
-
-  const submitCheckoutForm = (checkoutData: BillingCheckoutResponse) => {
-    const form = document.createElement("form");
-    form.action = checkoutData.action_url;
-    form.method = checkoutData.method || "POST";
-    form.style.display = "none";
-
-    for (const field of checkoutData.fields) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = field.name;
-      input.value = field.value;
-      form.appendChild(input);
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-    window.setTimeout(() => form.remove(), 0);
-  };
+  }, [activeCheckout, appId, checkoutStatus?.paid, queryClient]);
 
   return (
     <>
+      {activeCheckout ? (
+        <Card className="mb-8 border-primary/30 bg-gradient-to-br from-background to-muted/30 xl:mx-16">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between gap-4">
+              <span>Quét QR để thanh toán</span>
+              <Badge variant="secondary">
+                {checkoutStatus?.paid ? "Đã thanh toán" : "Đang chờ"}
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Chuyển khoản đúng số tiền và nội dung để hệ thống tự xác nhận.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
+            <div className="rounded-3xl bg-white p-4 shadow-lg shadow-black/10 ring-1 ring-black/5">
+              <img
+                src={activeCheckout.checkout.qr_code_url}
+                alt="QR thanh toán SePay"
+                className="h-64 w-64 rounded-2xl object-contain"
+              />
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="text-muted-foreground">Số tiền</div>
+                <div className="text-3xl font-bold">
+                  {formatNumber(activeCheckout.checkout.amount)}đ
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Nội dung chuyển khoản</div>
+                <div className="rounded-xl border bg-muted/40 px-4 py-3 font-mono text-sm break-all">
+                  {activeCheckout.checkout.payment_content}
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Trạng thái</div>
+                <div className="font-medium">
+                  {checkoutStatus?.paid
+                    ? "Hệ thống đã ghi nhận thanh toán"
+                    : "Chờ SePay webhook xác nhận"}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    activeCheckout.checkout.payment_content
+                  );
+                  toast.success("Đã sao chép nội dung chuyển khoản");
+                }}
+              >
+                Sao chép nội dung
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
         {pricings.map((pricing) => (
           <Card
@@ -131,7 +164,7 @@ export default function AppPricingList() {
                 variant={pricing.popular ? "default" : "outline"}
                 onClick={() =>
                   checkout(pricing.id, (data) => {
-                    submitCheckoutForm(data);
+                    setActiveCheckout({ planId: pricing.id, checkout: data });
                   })
                 }
               >

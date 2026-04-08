@@ -54,14 +54,15 @@ type BillingCheckoutField struct {
 }
 
 type BillingCheckoutResponse struct {
-	ActionURL          string                 `json:"action_url"`
-	Method             string                 `json:"method"`
-	PaymentID          string                 `json:"payment_id"`
-	OrderInvoiceNumber string                 `json:"order_invoice_number"`
-	SuccessURL         string                 `json:"success_url"`
-	ErrorURL           string                 `json:"error_url"`
-	CancelURL          string                 `json:"cancel_url"`
-	Fields             []BillingCheckoutField `json:"fields"`
+	ActionURL        string                 `json:"action_url"`
+	Method           string                 `json:"method"`
+	PaymentID        string                 `json:"payment_id"`
+	QRCodeURL        string                 `json:"qr_code_url"`
+	PaymentContent   string                 `json:"payment_content"`
+	PaymentStatusURL string                 `json:"payment_status_url"`
+	Amount           int                    `json:"amount"`
+	ExpiresAt        time.Time              `json:"expires_at"`
+	Fields           []BillingCheckoutField `json:"fields"`
 }
 
 type BillingCheckoutStatusResponse struct {
@@ -83,31 +84,18 @@ type BillingPaymentWebhookRequest struct {
 }
 
 type BillingSePayIPNRequest struct {
-	Timestamp        int64  `json:"timestamp"`
-	NotificationType string `json:"notification_type"`
-	Order            struct {
-		ID                 string `json:"id"`
-		OrderID            string `json:"order_id"`
-		OrderStatus        string `json:"order_status"`
-		OrderCurrency      string `json:"order_currency"`
-		OrderAmount        string `json:"order_amount"`
-		OrderInvoiceNumber string `json:"order_invoice_number"`
-		OrderDescription   string `json:"order_description"`
-	} `json:"order"`
-	Transaction struct {
-		ID                  string `json:"id"`
-		PaymentMethod       string `json:"payment_method"`
-		TransactionID       string `json:"transaction_id"`
-		TransactionType     string `json:"transaction_type"`
-		TransactionDate     string `json:"transaction_date"`
-		TransactionStatus   string `json:"transaction_status"`
-		TransactionAmount   string `json:"transaction_amount"`
-		TransactionCurrency string `json:"transaction_currency"`
-	} `json:"transaction"`
-	Customer struct {
-		ID         string `json:"id"`
-		CustomerID string `json:"customer_id"`
-	} `json:"customer"`
+	ID              int64   `json:"id"`
+	Gateway         string  `json:"gateway"`
+	TransactionDate string  `json:"transactionDate"`
+	AccountNumber   string  `json:"accountNumber"`
+	Code            *string `json:"code"`
+	Content         string  `json:"content"`
+	TransferType    string  `json:"transferType"`
+	TransferAmount  int64   `json:"transferAmount"`
+	Accumulated     int64   `json:"accumulated"`
+	SubAccount      *string `json:"subAccount"`
+	ReferenceCode   string  `json:"referenceCode"`
+	Description     string  `json:"description"`
 }
 
 type SubscriptionManageResponse struct {

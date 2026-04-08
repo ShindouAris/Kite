@@ -9,7 +9,7 @@ import { BillingCheckoutResponse } from "../types/wire.gen";
 
 type CheckoutSuccessHandler = (checkout: BillingCheckoutResponse) => void;
 
-export function useLemonSqueezyCheckout() {
+export function useBillingCheckout() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
 
@@ -35,6 +35,8 @@ export function useLemonSqueezyCheckout() {
     [checkoutMutation]
   );
 }
+
+export const useLemonSqueezyCheckout = useBillingCheckout;
 
 export function useLemonSqueezyCustomerPortal(subscriptionId: string) {
   const manageMutation = useAppSubscriptionManageMutation(subscriptionId);

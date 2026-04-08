@@ -43,6 +43,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerStore store.EventListenerStore,
 	pluginInstanceStore store.PluginInstanceStore,
 	subscriptionStore store.SubscriptionStore,
+	paymentSessionStore store.PaymentSessionStore,
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
@@ -165,9 +166,8 @@ func (s *APIServer) RegisterRoutes(
 		SePayWithQRCode:         s.config.Billing.SePayWithQRCode,
 		SePayCheckoutTTLMinutes: s.config.Billing.SePayCheckoutTTLMinutes,
 		AppPublicBaseURL:        s.config.AppPublicBaseURL,
-	}, appStore, userStore, subscriptionStore, entitlementStore, planManager)
+	}, paymentSessionStore, appStore, userStore, subscriptionStore, entitlementStore, planManager)
 
-	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
 	v1Group.Post("/billing/sepay/ipn", handler.TypedWithBody(billingHandler.HandleSePayIPN))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
 
